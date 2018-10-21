@@ -8,6 +8,8 @@ import psycopg2
 
 import insert_movie
 
+import search_db
+
 
 
 app = Flask(__name__)
@@ -16,8 +18,12 @@ CORS(app)
 
 conn = psycopg2.connect("dbname=FTS_db user=postgres password=strato79")
 cur = conn.cursor()
-cur.execute('SELECT movie_id from movie order by movie_id desc', 'dan')
-print(cur.fetchall())
+#cur.execute('SELECT movie_id from movie order by movie_id desc', 'dan')
+#print(cur.fetchall())
+
+#search_db.search_movie(conn,'dog','OR')
+
+search_db.getAuto(conn,'saga')
 
 
 @app.route('/')
@@ -50,17 +56,22 @@ def search():
     for k,v in data.items():
         print(k,v)
 
+    resultQuery, resultRanks=search_db.search_movie(conn,data['userQuery'], data['operator'])
+    return jsonify(search_db.prepareJson(resultQuery,resultRanks))
 
-    dummyQuery='QUERRRRYYYYY'
-    nDocs=771
-    ranks=['row1','row2','row3']
-    responsePreparedByKarla={
-        'query':dummyQuery,
-        'nDocs':nDocs,
-        'ranks':ranks
-    }
-    return jsonify(responsePreparedByKarla)
 
+@app.route('/auto', methods=['POST'])
+def auto():
+    print(request.data)
+    data=json.loads(request.data)
+    if data['userQuery']:
+        autocompleteResult=search_db.getAuto(conn,data['userQuery'])
+
+
+        print('AUTOCOMPLETE RESULT',autocompleteResult)
+        return jsonify({'options':autocompleteResult})
+    else:
+        return jsonify({'options':[]})
 
 
 
